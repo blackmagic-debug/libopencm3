@@ -74,6 +74,8 @@ libstm32h7 = static_library(
 	implicit_include_directories: false,
 	dependencies: [
 		stm32h7_cm3,
+		usb_common,
+		usb_stm32_dwc,
 	],
 	pic: false,
 )
