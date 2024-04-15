@@ -56,6 +56,7 @@ libstm32h7 = static_library(
 	'opencm3_stm32h7',
 	[
 		libstm32h7_sources,
+		libstm32_crs_sources,
 		libstm32_dac_v2_sources,
 		libstm32_exti_sources,
 		libstm32_fdcan_sources,
