@@ -34,7 +34,7 @@ stm32h7_cm3 = declare_dependency(
 	dependencies: stm32h7_vector_nvic,
 )
 
-# Sources specific to the F4 series
+# Sources specific to the H7 series
 libstm32h7_sources = files(
 	'fdcan.c',
 	'pwr.c',
