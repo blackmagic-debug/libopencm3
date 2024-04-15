@@ -37,6 +37,7 @@ stm32h7_cm3 = declare_dependency(
 # Sources specific to the H7 series
 libstm32h7_sources = files(
 	'fdcan.c',
+	'flash.c',
 	'pwr.c',
 	'rcc.c',
 	#'vector_chipset.c', # XXX: This source is unused for some reason
@@ -58,7 +59,6 @@ libstm32h7 = static_library(
 		libstm32_dac_v2_sources,
 		libstm32_exti_sources,
 		libstm32_fdcan_sources,
-		libstm32_flash_f24_sources,
 		libstm32_fmc_f47_sources,
 		libstm32_gpio_f0234_sources,
 		libstm32_qspi_v1_sources,
