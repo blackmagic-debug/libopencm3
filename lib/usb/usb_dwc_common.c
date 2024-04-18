@@ -33,21 +33,20 @@
 
 void dwc_set_address(usbd_device *usbd_dev, uint8_t addr)
 {
-	REBASE(OTG_DCFG) = (REBASE(OTG_DCFG) & ~OTG_DCFG_DAD) | (addr << 4);
+	REBASE(OTG_DCFG) = (REBASE(OTG_DCFG) & ~OTG_DCFG_DAD) | (addr << 4U);
 }
 
-void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type,
-			uint16_t max_size,
+void dwc_ep_setup(usbd_device *const usbd_dev, const uint8_t addr, const uint8_t type,
+			const uint16_t max_size,
 			void (*callback) (usbd_device *usbd_dev, uint8_t ep))
 {
 	/*
 	 * Configure endpoint address and type. Allocate FIFO memory for
 	 * endpoint. Install callback function.
 	 */
-	uint8_t dir = addr & 0x80;
-	addr &= 0x7f;
+	const uint8_t ep = addr & 0x7fU;
 
-	if (addr == 0) { /* For the default control endpoint */
+	if (ep == 0) { /* For the default control endpoint */
 		/* Configure IN part. */
 #if defined(STM32H7)
 		/* Do not initially arm the IN endpoint - we've got nothing to send the host at first */
@@ -97,31 +96,31 @@ void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type,
 		return;
 	}
 
-	if (dir) {
-		REBASE(OTG_DIEPTXF(addr)) = ((max_size / 4) << 16) |
+	if (addr & 0x80U) {
+		REBASE(OTG_DIEPTXF(ep)) = ((max_size / 4) << 16) |
 					     usbd_dev->fifo_mem_top;
 		usbd_dev->fifo_mem_top += max_size / 4;
 
-		REBASE(OTG_DIEPTSIZ(addr)) =
+		REBASE(OTG_DIEPTSIZ(ep)) =
 		    (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
-		REBASE(OTG_DIEPCTL(addr)) |=
+		REBASE(OTG_DIEPCTL(ep)) |=
 		    OTG_DIEPCTL0_EPENA | OTG_DIEPCTL0_SNAK | (type << 18) |
 		    OTG_DIEPCTL0_USBAEP | OTG_DIEPCTLX_SD0PID |
-		    (addr << 22) | max_size;
+		    (ep << 22) | max_size;
 
 		if (callback) {
-			usbd_dev->user_callback_ctr[addr][USB_TRANSACTION_IN] = callback;
+			usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_IN] = callback;
 		}
 	} else {
-		usbd_dev->doeptsiz[addr] = OTG_DIEPSIZ0_PKTCNT |
+		usbd_dev->doeptsiz[ep] = OTG_DIEPSIZ0_PKTCNT |
 				 (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
-		REBASE(OTG_DOEPTSIZ(addr)) = usbd_dev->doeptsiz[addr];
-		REBASE(OTG_DOEPCTL(addr)) |= OTG_DOEPCTL0_EPENA |
+		REBASE(OTG_DOEPTSIZ(ep)) = usbd_dev->doeptsiz[ep];
+		REBASE(OTG_DOEPCTL(ep)) |= OTG_DOEPCTL0_EPENA |
 		    OTG_DOEPCTL0_USBAEP | OTG_DIEPCTL0_CNAK |
 		    OTG_DOEPCTLX_SD0PID | (type << 18) | max_size;
 
 		if (callback) {
-			usbd_dev->user_callback_ctr[addr][USB_TRANSACTION_OUT] = callback;
+			usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_OUT] = callback;
 		}
 	}
 }
