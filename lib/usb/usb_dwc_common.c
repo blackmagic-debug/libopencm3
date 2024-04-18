@@ -51,7 +51,7 @@ void dwc_ep_setup(usbd_device *const usbd_dev, const uint8_t addr, const uint8_t
 #if defined(STM32H7)
 		/* Do not initially arm the IN endpoint - we've got nothing to send the host at first */
 		REBASE(OTG_DIEPTSIZ(0)) = 0;
-		REBASE(OTG_DIEPCTL(0)) = (max_size & OTG_DIEPCTL0_MPSIZ_MASK) | OTG_DIEPCTL0_SNAK |
+		REBASE(OTG_DIEPCTL(0)) = (max_size & OTG_DIEPCTLX_MPSIZ_MASK) | OTG_DIEPCTL0_SNAK |
 			OTG_DIEPCTL0_USBAEP;
 #else
 		if (max_size >= 64) {
