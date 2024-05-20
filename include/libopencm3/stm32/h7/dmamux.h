@@ -78,9 +78,9 @@ LGPL License Terms @ref lgpl_license
 
 /** @defgroup dmamux_cxcr_sync_id SYNCID Synchronization input selected
 @{*/
-#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT0       0
-#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT1       1
-#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT2       2
+#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT_CH0    0
+#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT_CH1    1
+#define DMAMUX1_CxCR_SYNC_ID_DMAMUX1_EVT_CH2    2
 #define DMAMUX1_CxCR_SYNC_ID_LPTIM1_OUT         3
 #define DMAMUX1_CxCR_SYNC_ID_LPTIM2_OUT         4
 #define DMAMUX1_CxCR_SYNC_ID_LPTIM3_OUT         5
@@ -223,9 +223,9 @@ LGPL License Terms @ref lgpl_license
 
 /** @defgroup dmamux_rgxcr_sig_id SIGID DMA request trigger input selected
 @{*/
-#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT0       0
-#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT1       1
-#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT2       2
+#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT_CH0    0
+#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT_CH1    1
+#define DMAMUX1_RGxCR_SIG_ID_DMAMUX1_EVT_CH2    2
 #define DMAMUX1_RGxCR_SIG_ID_LPTIM1_OUT         3
 #define DMAMUX1_RGxCR_SIG_ID_LPTIM2_OUT         4
 #define DMAMUX1_RGxCR_SIG_ID_LPTIM3_OUT         5
