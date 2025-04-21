@@ -51,7 +51,7 @@ libstm32l4_compile_args = [
 	'-mfpu=fpv4-sp-d16',
 	'-mcpu=cortex-m4',
 	'-mthumb',
-	'-Dstm32l4',
+	'-DSTM32L4',
 ]
 
 # Build a static library for the target platform
