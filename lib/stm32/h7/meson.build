@@ -40,7 +40,7 @@ libstm32h7_sources = files(
 	'flash.c',
 	'pwr.c',
 	'rcc.c',
-	#'vector_chipset.c', # XXX: This source is unused for some reason
+	#'vector_chipset.c', # This source is included by lib/dispatch/vector_chipset.c
 )
 
 libstm32h7_compile_args = [
