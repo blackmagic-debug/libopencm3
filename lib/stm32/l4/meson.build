@@ -60,7 +60,6 @@ libstm32l4 = static_library(
 	[
 		libstm32l4_sources,
 		libstm32_adc_v2_multi_sources,
-		libstm32_fdcan_sources,
 		libstm32_crc_v1_sources,
 		libstm32_crc_v2_sources,
 		libstm32_crs_sources,
@@ -73,7 +72,6 @@ libstm32l4 = static_library(
 		libstm32_i2c_v2_sources,
 		libstm32_iwdg_sources,
 		libstm32_lptimer_sources,
-		libstm32_pwr_v1_sources,
 		libstm32_rcc_sources,
 		libstm32_rng_v1_sources,
 		libstm32_rtc_l1f024_sources,
