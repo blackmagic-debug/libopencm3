@@ -42,7 +42,7 @@ libstm32l4_sources = files(
 	'i2c.c',
 	'pwr.c',
 	'rcc.c',
-	'vector_chipset.c',
+	#'vector_chipset.c', # This source is included by lib/dispatch/vector_chipset.c 
 
 )
 
