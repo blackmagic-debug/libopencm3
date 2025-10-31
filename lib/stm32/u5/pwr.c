@@ -1,7 +1,19 @@
-/* This provides unification of code over STM32 subfamilies */
-
+/**
+ * @brief <b>libopencm3 STM32U5xx Power Control</b>
+ *
+ * @version 1.0.0
+ *
+ * @date 21 September, 2025
+ *
+ * This library supports the power control system for the
+ * STM32U5 series of ARM Cortex Microcontrollers by ST Microelectronics.
+ *
+ * LGPL License Terms @ref lgpl_license
+ */
 /*
  * This file is part of the libopencm3 project.
+ *
+ * Copyright (C) 2025 ALTracer <11005378+ALTracer@users.noreply.github.com>
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -16,22 +28,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <libopencm3/stm32/pwr.h>
 
-#include <libopencm3/cm3/common.h>
-#include <libopencm3/stm32/memorymap.h>
-
-#if defined(STM32F0)
-#       include <libopencm3/stm32/f0/crs.h>
-#elif defined(STM32L0)
-#       include <libopencm3/stm32/l0/crs.h>
-#elif defined(STM32L4)
-#       include <libopencm3/stm32/l4/crs.h>
-#elif defined(STM32G4)
-#       include <libopencm3/stm32/g4/crs.h>
-#elif defined(STM32H7)
-#       include <libopencm3/stm32/h7/crs.h>
-#elif defined(STM32U5)
-#       include <libopencm3/stm32/u5/crs.h>
-#else
-#       error "stm32 family not defined or not supported for this peripheral"
-#endif
+void pwr_enable_vddusb(void)
+{
+	PWR_SVMCR |= PWR_SVMCR_UVMEN;
+	while (!(PWR_SVMSR & PWR_SVMSR_VDDUSBRDY))
+		continue;
+	PWR_SVMCR &= ~PWR_SVMCR_UVMEN;
+	PWR_SVMCR |= PWR_SVMCR_USV;
+}

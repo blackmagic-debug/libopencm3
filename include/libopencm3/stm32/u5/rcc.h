@@ -358,6 +358,13 @@ enum rcc_periph_clken {
 	RCC_GPIOH	= _REG_BIT(0x8C, 7),
 	RCC_GPIOI	= _REG_BIT(0x8C, 8),
 	RCC_GPIOJ	= _REG_BIT(0x8C, 9),
+	RCC_OTGFS	= _REG_BIT(0x8C, 14),
+	RCC_OTGHS	= _REG_BIT(0x8C, 14),
+
+	/* AHB3 peripherals */
+	RCC_PWR		= _REG_BIT(0x94, 2),
+	RCC_ADC4	= _REG_BIT(0x94, 5),
+	RCC_DAC1	= _REG_BIT(0x94, 6),
 
 	/* APB1 peripherals */
 	RCC_TIM2	= _REG_BIT(0x9C, 0),
