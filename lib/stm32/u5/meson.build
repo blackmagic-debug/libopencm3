@@ -36,6 +36,7 @@ stm32u5_cm3 = declare_dependency(
 
 # Sources specific to the H7 series
 libstm32u5_sources = files(
+	'dma.c',
 	'pwr.c',
 	'rcc.c',
 )
@@ -55,7 +56,6 @@ libstm32u5 = static_library(
 		libstm32u5_sources,
 		libstm32_crs_sources,
 		libstm32_exti_sources,
-		libstm32_gpio_f0234_sources,
 		libstm32_i2c_v2_sources,
 		libstm32_iwdg_sources,
 		libstm32_rcc_sources,
