@@ -212,6 +212,13 @@ being at the same relative location */
 
 /* --- DMA_CxTR2 values ----------------------------------------------------- */
 
+/* SWREQ: Software request */
+#define DMA_CxTR2_SWREQ           (1U << 9U)
+/* DREQ: Destination hardware request */
+#define DMA_CxTR2_DREQ            (1U << 10U)
+/* BREQ: Block hardware request */
+#define DMA_CxTR2_BREQ            (1U << 11U)
+
 #define DMA_CxTR2_REQSEL_MASK         0x0000003fU
 #define DMA_CxTR2_REQSEL_SHIFT        0U
 #define DMA_CxTR2_TRIGSEL_MASK        0x003f0000U
@@ -511,6 +518,13 @@ void dma_set_destination_swapping(uintptr_t dma, uint8_t channel, uint32_t swap_
 bool dma_set_source_port(uintptr_t dma, uint8_t channel, uint8_t port);
 bool dma_set_destination_port(uintptr_t dma, uint8_t channel, uint8_t port);
 // XXX: Deal with CxTR1 PAM bits
+
+void dma_set_block_flow_control(uintptr_t dma, uint8_t channel);
+void dma_set_burst_flow_control(uintptr_t dma, uint8_t channel);
+void dma_set_source_flow_control(uintptr_t dma, uint8_t channel);
+void dma_set_destination_flow_control(uintptr_t dma, uint8_t channel);
+void dma_set_software_request(uintptr_t dma, uint8_t channel);
+void dma_set_hardware_request(uintptr_t dma, uint8_t channel);
 
 void dma_enable_channel(uintptr_t dma, uint8_t channel);
 void dma_disable_channel(uintptr_t dma, uint8_t channel);

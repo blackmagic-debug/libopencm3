@@ -230,6 +230,37 @@ bool dma_set_destination_port(uintptr_t dma, uint8_t channel, uint8_t port)
 }
 
 
+void dma_set_block_flow_control(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) |= DMA_CxTR2_BREQ;
+}
+
+void dma_set_burst_flow_control(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) &= ~DMA_CxTR2_BREQ;
+}
+
+void dma_set_source_flow_control(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) &= ~DMA_CxTR2_DREQ;
+}
+
+void dma_set_destination_flow_control(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) |= DMA_CxTR2_DREQ;
+}
+
+void dma_set_software_request(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) |= DMA_CxTR2_SWREQ;
+}
+
+void dma_set_hardware_request(uintptr_t dma, uint8_t channel)
+{
+	DMA_CTR2(dma, channel) &= ~DMA_CxTR2_SWREQ;
+}
+
+
 void dma_enable_channel(const uintptr_t dma, const uint8_t channel)
 {
 	DMA_CCR(dma, channel) |= DMA_CxCR_EN;
