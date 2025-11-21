@@ -38,6 +38,7 @@ stm32u5_cm3 = declare_dependency(
 libstm32u5_sources = files(
 	'dma.c',
 	'adc.c',
+	'flash.c',
 	'pwr.c',
 	'rcc.c',
 	'spi.c',
