@@ -212,13 +212,17 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 
 	/* Return if endpoint is already enabled. */
 #if defined(STM32H7) || defined(STM32U5)
+#if defined(STM32U5)
+	if (REBASE(OTG_DIEPTSIZ(ep)) & OTG_DIEPSIZ0_PKTCNT) {
+#else
 	if (REBASE(OTG_DIEPCTL(ep)) & OTG_DIEPCTL0_EPENA) {
+#endif
 		return 0U;
 	}
 
 	/* Enable endpoint for transmission. */
 	if (ep == 0U) {
-		REBASE(OTG_DIEPTSIZ(ep)) = OTG_DIEPSIZ0_PKTCNT | (len & OTG_DIEPSIZ0_XFRSIZ_MASK);
+		REBASE(OTG_DIEPTSIZ(0U)) = OTG_DIEPSIZ0_PKTCNT | (len & OTG_DIEPSIZ0_XFRSIZ_MASK);
 	} else {
 		REBASE(OTG_DIEPTSIZ(ep)) = OTG_DIEPSIZX_PKTCNT(1) | (len & OTG_DIEPSIZX_XFRSIZ_MASK);
 	}
@@ -228,8 +232,8 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 	/* Figure out where to copy the data to */
 	volatile uint32_t *const fifo = (volatile uint32_t *)(usbd_dev->driver->base_address + OTG_FIFO(ep));
 	/* Copy the data into the FIFO for this endpoint */
-	for (size_t offset = 0; offset < len; offset += 4U) {
-		uint32_t data = 0;
+	for (size_t offset = 0U; offset < len; offset += 4U) {
+		uint32_t data = 0U;
 		const size_t amount = MIN(len - offset, 4U);
 		memcpy(&data, buf8 + offset, amount);
 		fifo[offset >> 2U] = data;
@@ -248,7 +252,7 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 	 * ARMv7M supports non-word-aligned accesses, ARMv6M does not. */
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_8M_MAIN__)
 	for (size_t i = 0U; i < len; i += 4U) {
-		REBASE(OTG_FIFO(ep)) = *buf32++;
+		REBASE(OTG_FIFO(ep)) = buf32[i >> 2U];
 	}
 #endif /* defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__) */
 
