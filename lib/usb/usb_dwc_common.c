@@ -69,6 +69,8 @@ void dwc_ep_setup(usbd_device *const usbd_dev, const uint8_t addr, const uint8_t
 		REBASE(OTG_DIEPTSIZ0) = (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
 #endif
 		REBASE(OTG_DIEPCTL0) |= OTG_DIEPCTL0_SNAK | OTG_DIEPCTL0_USBAEP;
+		if (REBASE(OTG_DIEPCTL0) & OTG_DIEPCTL0_EPENA)
+			REBASE(OTG_DIEPCTL0) |= OTG_DIEPCTL0_EPDIS;
 #endif
 
 		/* Configure OUT part. */
@@ -214,15 +216,18 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 {
 	const uint8_t ep = addr & 0x7FU;
 
-	/* Return if endpoint is already enabled. */
 #if defined(STM32H7) || defined(STM32U5)
 #if defined(STM32U5)
-	if (REBASE(OTG_DIEPTSIZ(ep)) & OTG_DIEPSIZ0_PKTCNT) {
+	/* Spin if endpoint is already enabled. */
+	while (REBASE(OTG_DIEPCTL(ep)) & OTG_DIEPCTL0_EPENA) {
+		continue;
+	}
 #else
+	/* Return if endpoint is already enabled. */
 	if (REBASE(OTG_DIEPCTL(ep)) & OTG_DIEPCTL0_EPENA) {
-#endif
 		return 0U;
 	}
+#endif
 
 	/* Enable endpoint for transmission. */
 	if (ep == 0U) {
@@ -233,8 +238,8 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 	REBASE(OTG_DIEPCTL(ep)) |= OTG_DIEPCTL0_EPENA | OTG_DIEPCTL0_CNAK;
 
 	const uint32_t *const buf32 = buf;
-	/* Figure out where to copy the data to */
 #if defined(STM32H7)
+	/* Figure out where to copy the data to */
 	volatile uint32_t *const fifo = (volatile uint32_t *)(usbd_dev->driver->base_address + OTG_FIFO(ep));
 #endif
 	const uint16_t aligned_len = len & ~3U;
@@ -298,19 +303,23 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 
 uint16_t dwc_ep_read_packet(usbd_device *usbd_dev, uint8_t addr, void *buf, uint16_t len)
 {
-	/* We do not need to know the endpoint address since there is only one
-	 * receive FIFO for all endpoints.
-	 */
+	/* We do not need to know the endpoint address since there is only one receive FIFO for all endpoints. */
 	(void)addr;
 #if defined(STM32H7) || defined(STM32U5)
 	const size_t count = MIN(len, usbd_dev->rxbcnt);
 
 	uint8_t *const buf8 = buf;
+#if defined(STM32H7)
 	/* Figure out where to copy the data from */
 	const volatile uint32_t *const fifo = (const volatile uint32_t *)(usbd_dev->driver->base_address + OTG_FIFO(0));
+#endif
 	/* Copy the data out of the FIFO for this endpoint */
 	for (size_t offset = 0U; offset < count; offset += 4U) {
+#if defined(STM32H7)
 		const uint32_t data = fifo[offset >> 2U];
+#else
+		const uint32_t data = REBASE(OTG_FIFO(0));
+#endif
 		const size_t amount = MIN(count - offset, 4U);
 		memcpy(buf8 + offset, &data, amount);
 	}
@@ -417,7 +426,7 @@ void dwc_poll(usbd_device *usbd_dev)
 	 *
 	 * Iterate over the IN endpoints, triggering any post-transmit actions.
 	 */
-#if defined(STM32H7) // || defined(STM32U5)
+#if defined(STM32H7) || defined(STM32U5)
 	if (intsts & OTG_GINTSTS_IEPINT) {
 #endif
 		for (size_t i = 0; i < ENDPOINT_COUNT; i++) {
@@ -430,7 +439,7 @@ void dwc_poll(usbd_device *usbd_dev)
 				}
 			}
 		}
-#if defined(STM32H7) // || defined(STM32U5)
+#if defined(STM32H7) || defined(STM32U5)
 	}
 #endif
 
@@ -478,7 +487,7 @@ void dwc_poll(usbd_device *usbd_dev)
 		}
 
 		/* Discard unread packet data. */
-#if defined(STM32H7) || defined(STM32U5)
+#if defined(STM32H7)
 		const size_t total_length = (rxstsp & OTG_GRXSTSP_BCNT_MASK) >> 4U;
 		const size_t consumed = total_length - usbd_dev->rxbcnt;
 		const volatile uint32_t *const fifo = (const volatile uint32_t *)(usbd_dev->driver->base_address + OTG_FIFO(0));
@@ -488,10 +497,14 @@ void dwc_poll(usbd_device *usbd_dev)
 
 		REBASE(OTG_DOEPINT(ep)) = OTG_DOEPINTX_XFRC;
 #else
-		for (size_t i = 0; i < usbd_dev->rxbcnt; i += 4U) {
+		for (size_t offset = 0; offset < usbd_dev->rxbcnt; offset += 4U) {
 			/* There is only one receive FIFO, so use OTG_FIFO(0) */
 			(void)REBASE(OTG_FIFO(0));
 		}
+
+#if defined(STM32U5)
+		REBASE(OTG_DOEPINT(ep)) = OTG_DOEPINTX_XFRC;
+#endif
 #endif
 
 		usbd_dev->rxbcnt = 0;
