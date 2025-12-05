@@ -28,7 +28,7 @@
 #include "usb_dwc_common.h"
 
 /* Receive FIFO size in 32-bit words. */
-#define RX_FIFO_SIZE 64U
+#define RX_FIFO_SIZE 32U /* 128 bytes */
 
 static usbd_device *stm32u5_usbd_init(void);
 
@@ -55,12 +55,13 @@ const struct _usbd_driver stm32u5_usb_driver = {
 static usbd_device *stm32u5_usbd_init(void)
 {
 	rcc_periph_clock_enable(RCC_OTGFS);
-	OTG_FS_GINTSTS = OTG_GINTSTS_MMIS;
+	/* Forcibly disconenct in case the core doesn't already */
+	OTG_FS_DCTL |= OTG_DCTL_SDIS;
 
 	OTG_FS_GUSBCFG |= OTG_GUSBCFG_PHYSEL;
-	/* Enable VBUS sensing in device mode, data connection detection and power up the FS PHY */
-	OTG_FS_GCCFG &= ~OTG_GCCFG_PDEN;
-	OTG_FS_GCCFG |= OTG_GCCFG_VBDEN | OTG_GCCFG_DCDEN | OTG_GCCFG_PWRDWN;
+	/* Enable VBUS sensing in device mode, and power up the FS PHY */
+	OTG_FS_GCCFG &= ~(OTG_GCCFG_PDEN | OTG_GCCFG_SDEN | OTG_GCCFG_DCDEN | OTG_GCCFG_BCDEN);
+	OTG_FS_GCCFG |= OTG_GCCFG_VBDEN | OTG_GCCFG_PWRDWN;
 
 	/* Wait for AHB idle. */
 	while (!(OTG_FS_GRSTCTL & OTG_GRSTCTL_AHBIDL))
@@ -70,9 +71,6 @@ static usbd_device *stm32u5_usbd_init(void)
 	while (OTG_FS_GRSTCTL & OTG_GRSTCTL_CSRST)
 		continue;
 
-	/* Explicitly enable DP pullup (not all cores do this by default) */
-	OTG_FS_DCTL &= ~OTG_DCTL_SDIS;
-
 	/* Force peripheral only mode. */
 	OTG_FS_GUSBCFG |= OTG_GUSBCFG_FDMOD | OTG_GUSBCFG_TRDT_MASK;
 
@@ -80,18 +78,23 @@ static usbd_device *stm32u5_usbd_init(void)
 	OTG_FS_DCFG |= OTG_DCFG_DSPD;
 
 	/* Restart the PHY clock. */
-	OTG_FS_PCGCCTL = 0;
+	OTG_FS_PCGCCTL = 0U;
 
 	OTG_FS_GRXFSIZ = stm32u5_usb_driver.rx_fifo_size;
 	usbd_dev.fifo_mem_top = stm32u5_usb_driver.rx_fifo_size;
 
+	/* Clear all outstanding interrupts so we're in a clean state */
+	OTG_FS_GINTSTS = UINT32_MAX;
 	/* Unmask interrupts for TX and RX. */
 	OTG_FS_GAHBCFG |= OTG_GAHBCFG_GINT;
-	OTG_FS_GINTMSK = OTG_GINTMSK_ENUMDNEM | OTG_GINTMSK_RXFLVLM | OTG_GINTMSK_IEPINT | OTG_GINTMSK_USBSUSPM |
-		OTG_GINTMSK_WUIM | OTG_GINTMSK_SOFM;
+	OTG_FS_GINTMSK = OTG_GINTMSK_USBRST | OTG_GINTMSK_ENUMDNEM | OTG_GINTMSK_RXFLVLM | OTG_GINTMSK_IEPINT |
+		OTG_GINTMSK_OEPINT | OTG_GINTMSK_USBSUSPM | OTG_GINTMSK_WUIM | OTG_GINTMSK_SOFM;
 	OTG_FS_DAINTMSK = 0x00ff00ffU;
 	OTG_FS_DIEPMSK = OTG_DIEPMSK_XFRCM;
-	OTG_FS_DOEPMSK = OTG_DOEPMSK_STUPM | OTG_DOEPMSK_XFRCM;
+	OTG_FS_DOEPMSK = OTG_DOEPMSK_STUPM; // | OTG_DOEPMSK_XFRCM;
+
+	/* Explicitly enable DP pullup and connect */
+	OTG_FS_DCTL &= ~OTG_DCTL_SDIS;
 
 	return &usbd_dev;
 }
