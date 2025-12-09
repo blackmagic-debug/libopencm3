@@ -387,15 +387,56 @@ static void rcc_clock_setup_pll_source(const rcc_osc_e pll_source)
 	}
 }
 
+static void rcc_switch_sysclk_source(const uint8_t sw_source)
+{
+	/* Set the source we want to switch to */
+	RCC_CFGR = (RCC_CFGR & ~RCC_CFGR_SW) | (sw_source << RCC_CFGR_SW_SHIFT);
+	/* Now spin looking for that source to become active */
+	while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != sw_source)
+		continue;
+}
+
+static void rcc_msis_change_range(const uint8_t msis_range)
+{
+	/* Bring the LSE up if this config is for the MSIS to be PLL'd */
+	if (msis_range & RCC_MSIS_RANGE_PLL) {
+		RCC_BDCR |= RCC_BDCR_LSEON;
+		while ((RCC_BDCR & RCC_BDCR_LSERDY) == 0)
+			continue;
+	}
+
+	/* Temporarily bring up the HSI16 and switch to it so we can reconfig the MSIS */
+	const bool hsi_off = !(RCC_CR & RCC_CR_HSION);
+	RCC_CR |= RCC_CR_HSION;
+	while (!(RCC_CR & RCC_CR_HSIRDY))
+		continue;
+	rcc_switch_sysclk_source(RCC_CFGR_SW_HSI16);
+
+	/* Switch to the requested range */
+	const uint8_t range = msis_range & RCC_MSIS_RANGE_MASK;
+	RCC_ICSCR1 = (RCC_ICSCR1 & ~RCC_ICSCR1_MSISRANGE) | (range << RCC_ICSCR1_MSISRANGE_SHIFT) | RCC_ICSCR1_MSIRGSEL;
+	RCC_CR |= RCC_CR_MSISON;
+	/* And wait for it to become ready, switching back to MSIS as source */
+	while (!(RCC_CR & RCC_CR_MSISRDY))
+		continue;
+	rcc_switch_sysclk_source(RCC_CFGR_SW_MSIS);
+	/* Turn the HSI16 back off if it's not going to be used */
+	if (hsi_off)
+		RCC_CR &= ~RCC_CR_HSION;
+
+	/* And then ask the MSI PLL to come up if this config requires it */
+	if (msis_range & RCC_MSIS_RANGE_PLL) {
+		RCC_CR |= RCC_CR_MSIPLLEN | RCC_CR_MSIPLLSEL;
+	}
+}
+
 void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 {
 	/* First, set system clock to utilize MSIS, then disable all but MSIS. */
 	RCC_CR |= RCC_CR_MSISON;
 	while ((RCC_CR & RCC_CR_MSISRDY) == 0U)
 		continue;
-	RCC_CFGR &= ~RCC_CFGR_SW;
-	while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SWS_MSIS)
-		continue;
+	rcc_switch_sysclk_source(RCC_CFGR_SW_MSIS);
 	RCC_CR = RCC_CR_MSISON;
 
 	/* Now we've got known clocking, make sure the PWR block is enabled */
@@ -426,41 +467,8 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 			continue;
 	}
 	/* User has specified a MSIS frequency */
-	else if (config->msis_range != RCC_MSIS_RANGE_OFF) {
-		/* Bring the LSE up if this config is for the MSIS to be PLL'd */
-		if (config->msis_range & RCC_MSIS_RANGE_PLL) {
-			RCC_BDCR |= RCC_BDCR_LSEON;
-			while ((RCC_BDCR & RCC_BDCR_LSERDY) == 0)
-				continue;
-		}
-
-		/* Temporarily bring up the HSI16 and switch to it so we can reconfig the MSIS */
-		RCC_CR |= RCC_CR_HSION;
-		while (!(RCC_CR & RCC_CR_HSIRDY))
-			continue;
-		RCC_CFGR |= (RCC_CFGR_SW_HSI16 << RCC_CFGR_SW_SHIFT);
-		while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SW_HSI16)
-			continue;
-
-		/* Switch to the requested range */
-		const uint8_t range = config->msis_range & RCC_MSIS_RANGE_MASK;
-		RCC_ICSCR1 = (RCC_ICSCR1 & ~RCC_ICSCR1_MSISRANGE) | (range << RCC_ICSCR1_MSISRANGE_SHIFT) | RCC_ICSCR1_MSIRGSEL;
-		RCC_CR |= RCC_CR_MSISON;
-		/* And wait for it to become ready, switching back to MSIS as source */
-		while (!(RCC_CR & RCC_CR_MSISRDY))
-			continue;
-		RCC_CFGR &= ~RCC_CFGR_SW;
-		while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SWS_MSIS)
-			continue;
-		/* Turn the HSI16 back off if it's not going to be used */
-		if (config->sysclock_source != RCC_HSI16)
-			RCC_CR &= ~RCC_CR_HSION;
-
-		/* And then ask the MSI PLL to come up if this config requires it */
-		if (config->msis_range & RCC_MSIS_RANGE_PLL) {
-			RCC_CR |= RCC_CR_MSIPLLEN | RCC_CR_MSIPLLSEL;
-		}
-	}
+	else if (config->msis_range != RCC_MSIS_RANGE_OFF)
+		rcc_msis_change_range(config->msis_range);
 	rcc_clock_tree.msis = rcc_msi_frequency((RCC_ICSCR1 >> RCC_ICSCR1_MSISRANGE_SHIFT) & RCC_ICSCR1_MSISRANGE_MASK);
 	rcc_clock_tree.msik = rcc_msi_frequency((RCC_ICSCR1 >> RCC_ICSCR1_MSIKRANGE_SHIFT) & RCC_ICSCR1_MSIKRANGE_MASK);
 
@@ -474,29 +482,22 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 	RCC_CFGR3 = (RCC_CFGR3 & ~RCC_CFGR3_PPRE3) | (config->ppre3 << RCC_CFGR3_PPRE3_SHIFT);
 
 	/* Populate our base sysclk settings for use and switch the clock to the requested source */
-	uint8_t source = RCC_CFGR_SWS_MSIS;
 	if (config->sysclock_source == RCC_MSIS) {
 		/* We're already on the MSIS so just use that as the sysclk directly */
 		rcc_clock_tree.sysclk = rcc_clock_tree.msis;
 	} else if (config->sysclock_source == RCC_HSI16) {
-		/* Enable the HSI16 and switch to it */
-		RCC_CFGR |= (RCC_CFGR_SW_HSI16 << RCC_CFGR_SW_SHIFT);
-		source = RCC_CFGR_SWS_HSI16;
+		/* HSI16 was enabled by rcc_clock_setup_sysclk_source(), so switch to it */
+		rcc_switch_sysclk_source(RCC_CFGR_SW_HSI16);
 		rcc_clock_tree.sysclk = RCC_HSI_BASE_FREQUENCY;
 	} else if (config->sysclock_source == RCC_HSE) {
-		/* Enable the HSE and switch to it */
-		RCC_CFGR |= (RCC_CFGR_SW_HSE << RCC_CFGR_SW_SHIFT);
-		source = RCC_CFGR_SWS_HSE;
+		/* HSE was enabled by rcc_clock_setup_sysclk_source(), so switch to it */
+		rcc_switch_sysclk_source(RCC_CFGR_SW_HSE);
 		rcc_clock_tree.sysclk = config->hse_frequency;
 	} else {
-		/* Switch to PLL1R, assuming it's been configured above */
-		RCC_CFGR |= (RCC_CFGR_SW_PLL << RCC_CFGR_SW_SHIFT);
-		source = RCC_CFGR_SWS_PLL;
+		/* PLL1R was enabled by rcc_set_and_enable_plls(), so switch to it */
+		rcc_switch_sysclk_source(RCC_CFGR_SW_PLL);
 		rcc_clock_tree.sysclk = rcc_clock_tree.pll1.r;
 	}
-	/* Wait for the source to become active */
-	while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != source)
-		continue;
 
 	/* Store the running speeds of the divided clock domains now we're on the chosen source for SYSCLK */
 	rcc_clock_tree.hclk = rcc_prediv_log_skip32_div(rcc_clock_tree.sysclk, config->hpre);
