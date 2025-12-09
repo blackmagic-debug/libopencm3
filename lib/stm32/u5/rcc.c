@@ -323,7 +323,7 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 	RCC_CR |= RCC_CR_MSISON;
 	while ((RCC_CR & RCC_CR_MSISRDY) == 0U)
 		continue;
-	RCC_CFGR &= ~RCC_CFGR_SWS;
+	RCC_CFGR &= ~RCC_CFGR_SW;
 	while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SWS_MSIS)
 		continue;
 	RCC_CR = RCC_CR_MSISON;
@@ -358,9 +358,27 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 				continue;
 		}
 
+		/* Temporarily bring up the HSI16 and switch to it so we can reconfig the MSIS */
+		RCC_CR |= RCC_CR_HSION;
+		while (!(RCC_CR & RCC_CR_HSIRDY))
+			continue;
+		RCC_CFGR |= (RCC_CFGR_SW_HSI16 << RCC_CFGR_SW_SHIFT);
+		while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SW_HSI16)
+			continue;
+
 		/* Switch to the requested range */
 		const uint8_t range = config->msis_range & RCC_MSIS_RANGE_MASK;
-		RCC_ICSCR1 = (RCC_ICSCR1 & ~RCC_ICSCR1_MSISRANGE) | (range << RCC_ICSCR1_MSISRANGE_SHIFT);
+		RCC_ICSCR1 = (RCC_ICSCR1 & ~RCC_ICSCR1_MSISRANGE) | (range << RCC_ICSCR1_MSISRANGE_SHIFT) | RCC_ICSCR1_MSIRGSEL;
+		RCC_CR |= RCC_CR_MSISON;
+		/* And wait for it to become ready, switching back to MSIS as source */
+		while (!(RCC_CR & RCC_CR_MSISRDY))
+			continue;
+		RCC_CFGR &= ~RCC_CFGR_SW;
+		while (((RCC_CFGR >> RCC_CFGR_SWS_SHIFT) & RCC_CFGR_SWS_MASK) != RCC_CFGR_SWS_MSIS)
+			continue;
+		/* Turn the HSI16 back off if it's not going to be used */
+		if (config->sysclock_source != RCC_HSI16)
+			RCC_CR &= ~RCC_CR_HSION;
 
 		/* And then ask the MSI PLL to come up if this config requires it */
 		if (config->msis_range & RCC_MSIS_RANGE_PLL) {

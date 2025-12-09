@@ -163,8 +163,27 @@ extern const struct rcc_clock_scale rcc_hsi16mhz_configs;
 
 /* --- RCC_CFGR values ---------------------------------------------------- */
 
-#define RCC_CFGR_MCO_SHIFT 24U
-#define RCC_CFGR_MCO_MASK  0xfU
+#define RCC_CFGR_MCOPRE_SHIFT 28U
+#define RCC_CFGR_MCOPRE_MASK  0x7U
+#define RCC_CFGR_MCOPRE       (RCC_CFGR_MCOPRE_MASK << RCC_CFGR_MCOPRE_SHIFT)
+#define RCC_CFGR_MCOPRE_DIV1  (0U << RCC_CFGR_MCOPRE_SHIFT)
+#define RCC_CFGR_MCOPRE_DIV2  (1U << RCC_CFGR_MCOPRE_SHIFT)
+#define RCC_CFGR_MCOPRE_DIV4  (2U << RCC_CFGR_MCOPRE_SHIFT)
+#define RCC_CFGR_MCOPRE_DIV8  (3U << RCC_CFGR_MCOPRE_SHIFT)
+#define RCC_CFGR_MCOPRE_DIV16 (4U << RCC_CFGR_MCOPRE_SHIFT)
+
+#define RCC_CFGR_MCO_SHIFT  24U
+#define RCC_CFGR_MCO_MASK   0xfU
+#define RCC_CFGR_MCO        (RCC_CFGR_MCO_MASK << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_SYSCLK (1U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_MSIS   (2U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_HSI16  (3U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_HSE    (4U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_PLL1R  (5U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_LSI    (6U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_LSE    (7U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_HSI48  (8U << RCC_CFGR_MCO_SHIFT)
+#define RCC_CFGR_MCO_MSIK   (9U << RCC_CFGR_MCO_SHIFT)
 
 #define RCC_CFGR_SWS_SHIFT 2U
 #define RCC_CFGR_SWS_MASK  0x3U
@@ -176,6 +195,7 @@ extern const struct rcc_clock_scale rcc_hsi16mhz_configs;
 
 #define RCC_CFGR_SW_SHIFT 0U
 #define RCC_CFGR_SW_MASK  0x3U
+#define RCC_CFGR_SW       (RCC_CFGR_SW_MASK << RCC_CFGR_SW_SHIFT)
 #define RCC_CFGR_SW_MSIS  0x0U
 #define RCC_CFGR_SW_HSI16 0x1U
 #define RCC_CFGR_SW_HSE   0x2U
