@@ -86,9 +86,11 @@ void pwr_set_vos_scale(const pwr_vos_scale_e scale)
 
 void pwr_enable_vddusb(void)
 {
+	/* Enable voltage monitoring and wait for VDDUSB to be marked ready */
 	PWR_SVMCR |= PWR_SVMCR_UVMEN;
 	while (!(PWR_SVMSR & PWR_SVMSR_VDDUSBRDY))
 		continue;
+	/* Disable voltage monitoring again and disable isolation for the USB power domain */
 	PWR_SVMCR &= ~PWR_SVMCR_UVMEN;
 	PWR_SVMCR |= PWR_SVMCR_USV;
 }
