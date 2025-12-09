@@ -271,6 +271,7 @@ extern const struct rcc_clock_scale rcc_hsi16mhz_configs;
 #define RCC_PLLCFGR_PLLM_SHIFT 8U
 #define RCC_PLLCFGR_PLLM_MASK  0x0fU
 #define RCC_PLLCFGR_PLLM       (RCC_PLLCFGR_PLLM_MASK << RCC_PLLCFGR_PLLM_SHIFT)
+#define RCC_PLLCFGR_DIVM(n)    (((n) - 1U) << RCC_PLLCFGR_PLLM_SHIFT)
 
 #define RCC_PLLCFGR_PLLFRACEN (1U << 4U)
 

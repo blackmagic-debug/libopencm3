@@ -228,7 +228,7 @@ static void rcc_configure_pll(
 	*pll_div_reg = RCC_PLLDIVR_DIVN(config->divn);
 	*pll_cfg_reg &= ~(RCC_PLLCFGR_PLLREN | RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLPEN | RCC_PLLCFGR_PLLM |
 		RCC_PLLCFGR_PLLRGE | RCC_PLLCFGR_PLLSRC);
-	*pll_cfg_reg |= (config->divm << RCC_PLLCFGR_PLLM_SHIFT) | (config->pll_source << RCC_PLLCFGR_PLLSRC_SHIFT);
+	*pll_cfg_reg |= RCC_PLLCFGR_DIVM(config->divm) | (config->pll_source << RCC_PLLCFGR_PLLSRC_SHIFT);
 
 	/* Set the PLL input frequency range */
 	const uint32_t input_frequency = rcc_pll_input_frequency(hse_frequency, config->pll_source);
@@ -294,6 +294,27 @@ static uint32_t rcc_prediv_3bit_log_div(uint32_t clk, uint32_t div_val)
 	return clk >> (div_val - 3U);
 }
 
+static uint16_t rcc_map_pll_to_epod_div(const uint8_t divm)
+{
+	if (divm >= 16U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV16;
+	if (divm >= 14U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV14;
+	if (divm >= 12U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV12;
+	if (divm >= 10U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV10;
+	if (divm >= 8U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV8;
+	if (divm >= 6U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV6;
+	if (divm >= 4U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV4;
+	if (divm >= 2U)
+		return RCC_PLL1CFGR_PLL1MBOOST_DIV2;
+	return RCC_PLL1CFGR_PLL1MBOOST_DIV1;
+}
+
 void rcc_setup_epod_boost(const uint8_t pll_source, const uint8_t divm)
 {
 	/*
@@ -305,7 +326,8 @@ void rcc_setup_epod_boost(const uint8_t pll_source, const uint8_t divm)
 	RCC_PLL1CFGR &= ~(RCC_PLL1CFGR_PLL1MBOOST | RCC_PLLCFGR_PLLSRC_SHIFT);
 	if (pll_source != RCC_PLLCFGR_PLLSRC_NONE) {
 		/* Copy the source and prescaling settings over for the PLL */
-		RCC_PLL1CFGR |= (divm << RCC_PLL1CFGR_PLL1MBOOST_SHIFT) | (pll_source << RCC_PLLCFGR_PLLSRC_SHIFT);
+		RCC_PLL1CFGR |=
+			(rcc_map_pll_to_epod_div(divm) << RCC_PLL1CFGR_PLL1MBOOST_SHIFT) | (pll_source << RCC_PLLCFGR_PLLSRC_SHIFT);
 	} else {
 		/* Enable HSI16 and wait for it to become ready */
 		RCC_CR |= RCC_CR_HSION;
@@ -314,6 +336,54 @@ void rcc_setup_epod_boost(const uint8_t pll_source, const uint8_t divm)
 		/* Route it through to PLL1 w/ no prescaling for the boost clock */
 		RCC_PLL1CFGR |= (RCC_PLLCFGR_PLLSRC_HSI16 << RCC_PLLCFGR_PLLSRC_SHIFT) |
 			(RCC_PLL1CFGR_PLL1MBOOST_DIV1 << RCC_PLL1CFGR_PLL1MBOOST_SHIFT);
+	}
+}
+
+static void rcc_clock_setup_sysclk_source(const uint8_t sysclock_source)
+{
+	/* Figure out what basic source is required for SYSCLK, and bring that up */
+	switch (sysclock_source) {
+	case RCC_MSIS:
+		RCC_CR |= RCC_CR_MSISON;
+		while ((RCC_CR & RCC_CR_MSISRDY) == 0U)
+			continue;
+		break;
+	case RCC_HSI16:
+		RCC_CR |= RCC_CR_HSION;
+		while ((RCC_CR & RCC_CR_HSIRDY) == 0U)
+			continue;
+		break;
+	case RCC_PLLCFGR_PLLSRC_HSE:
+		RCC_CR |= RCC_CR_HSEON;
+		while ((RCC_CR & RCC_CR_HSERDY) == 0U)
+			continue;
+		break;
+	default:
+		break;
+	}
+}
+
+static void rcc_clock_setup_pll_source(const rcc_osc_e pll_source)
+{
+	/* Figure out what source is required for this PLL, then bring it up */
+	switch (pll_source) {
+	case RCC_PLLCFGR_PLLSRC_MSIS:
+		RCC_CR |= RCC_CR_MSISON;
+		while ((RCC_CR & RCC_CR_MSISRDY) == 0U)
+			continue;
+		break;
+	case RCC_PLLCFGR_PLLSRC_HSI16:
+		RCC_CR |= RCC_CR_HSION;
+		while ((RCC_CR & RCC_CR_HSIRDY) == 0U)
+			continue;
+		break;
+	case RCC_HSE:
+		RCC_CR |= RCC_CR_HSEON;
+		while ((RCC_CR & RCC_CR_HSERDY) == 0U)
+			continue;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -331,6 +401,13 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 	/* Now we've got known clocking, make sure the PWR block is enabled */
 	rcc_periph_clock_enable(RCC_PWR);
 
+	/* Bring up all the sources the user needs for this config */
+	rcc_clock_tree.hse_khz = config->hse_frequency / HZ_PER_KHZ;
+	rcc_clock_setup_sysclk_source(config->sysclock_source);
+	rcc_clock_setup_pll_source(config->pll1.pll_source);
+	rcc_clock_setup_pll_source(config->pll2.pll_source);
+	rcc_clock_setup_pll_source(config->pll3.pll_source);
+
 	/* Now that we're safely running on MSIS, if we're targeting a >55MHz config, set up PLL1MBOOST */
 	if (config->voltage_scale == PWR_VOS_SCALE_1 || config->voltage_scale == PWR_VOS_SCALE_2) {
 		rcc_setup_epod_boost(config->pll1.pll_source, config->pll1.divm);
@@ -347,7 +424,6 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 		RCC_CR |= RCC_CR_HSEON;
 		while (!(RCC_CR & RCC_CR_HSERDY))
 			continue;
-		rcc_clock_tree.hse_khz = config->hse_frequency / HZ_PER_KHZ;
 	}
 	/* User has specified a MSIS frequency */
 	else if (config->msis_range != RCC_MSIS_RANGE_OFF) {
@@ -404,17 +480,11 @@ void rcc_clock_setup_pll(const rcc_pll_config_s *const config)
 		rcc_clock_tree.sysclk = rcc_clock_tree.msis;
 	} else if (config->sysclock_source == RCC_HSI16) {
 		/* Enable the HSI16 and switch to it */
-		RCC_CR |= RCC_CR_HSION;
-		while (!(RCC_CR & RCC_CR_HSIRDY))
-			continue;
 		RCC_CFGR |= (RCC_CFGR_SW_HSI16 << RCC_CFGR_SW_SHIFT);
 		source = RCC_CFGR_SWS_HSI16;
 		rcc_clock_tree.sysclk = RCC_HSI_BASE_FREQUENCY;
 	} else if (config->sysclock_source == RCC_HSE) {
 		/* Enable the HSE and switch to it */
-		RCC_CR |= RCC_CR_HSEON;
-		while (!(RCC_CR & RCC_CR_HSERDY))
-			continue;
 		RCC_CFGR |= (RCC_CFGR_SW_HSE << RCC_CFGR_SW_SHIFT);
 		source = RCC_CFGR_SWS_HSE;
 		rcc_clock_tree.sysclk = config->hse_frequency;
