@@ -247,12 +247,12 @@ static void rcc_configure_pll(
 		pll_tree_ptr->p = pll_vco_clk / config->divp;
 	}
 	if (config->divq > 0U) {
-		*pll_div_reg |= RCC_PLLDIVR_DIVQ(config->divp);
+		*pll_div_reg |= RCC_PLLDIVR_DIVQ(config->divq);
 		*pll_cfg_reg |= RCC_PLLCFGR_PLLQEN;
 		pll_tree_ptr->q = pll_vco_clk / config->divq;
 	}
 	if (config->divr > 0U) {
-		*pll_div_reg |= RCC_PLLDIVR_DIVQ(config->divq);
+		*pll_div_reg |= RCC_PLLDIVR_DIVR(config->divr);
 		*pll_cfg_reg |= RCC_PLLCFGR_PLLREN;
 		pll_tree_ptr->r = pll_vco_clk / config->divr;
 	}
