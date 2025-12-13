@@ -32,7 +32,7 @@
 
 static usbd_device *stm32u5_usbd_init(void);
 
-static struct _usbd_device usbd_dev;
+static usbd_device usbd_dev;
 
 const struct _usbd_driver stm32u5_usb_driver = {
 	.init = stm32u5_usbd_init,
@@ -58,7 +58,6 @@ static usbd_device *stm32u5_usbd_init(void)
 	/* Forcibly disconenct in case the core doesn't already */
 	OTG_FS_DCTL |= OTG_DCTL_SDIS;
 
-	OTG_FS_GUSBCFG |= OTG_GUSBCFG_PHYSEL;
 	/* Enable VBUS sensing in device mode, and power up the FS PHY */
 	OTG_FS_GCCFG &= ~(OTG_GCCFG_PDEN | OTG_GCCFG_SDEN | OTG_GCCFG_DCDEN | OTG_GCCFG_BCDEN);
 	OTG_FS_GCCFG |= OTG_GCCFG_VBDEN | OTG_GCCFG_PWRDWN;
@@ -67,7 +66,7 @@ static usbd_device *stm32u5_usbd_init(void)
 	while (!(OTG_FS_GRSTCTL & OTG_GRSTCTL_AHBIDL))
 		continue;
 	/* Do core soft reset. */
-	OTG_FS_GRSTCTL |= OTG_GRSTCTL_CSRST;
+	OTG_FS_GRSTCTL = OTG_GRSTCTL_CSRST;
 	while (OTG_FS_GRSTCTL & OTG_GRSTCTL_CSRST)
 		continue;
 
@@ -86,12 +85,12 @@ static usbd_device *stm32u5_usbd_init(void)
 	/* Clear all outstanding interrupts so we're in a clean state */
 	OTG_FS_GINTSTS = UINT32_MAX;
 	/* Unmask interrupts for TX and RX. */
-	OTG_FS_GAHBCFG |= OTG_GAHBCFG_GINT;
+	OTG_FS_GAHBCFG |= OTG_GAHBCFG_GINT | OTG_GAHBCFG_TXFELVL;
 	OTG_FS_GINTMSK = OTG_GINTMSK_USBRST | OTG_GINTMSK_ENUMDNEM | OTG_GINTMSK_RXFLVLM | OTG_GINTMSK_IEPINT |
 		OTG_GINTMSK_OEPINT | OTG_GINTMSK_USBSUSPM | OTG_GINTMSK_WUIM | OTG_GINTMSK_SOFM;
 	OTG_FS_DAINTMSK = 0x00ff00ffU;
 	OTG_FS_DIEPMSK = OTG_DIEPMSK_XFRCM;
-	OTG_FS_DOEPMSK = OTG_DOEPMSK_STUPM; // | OTG_DOEPMSK_XFRCM;
+	OTG_FS_DOEPMSK = OTG_DOEPMSK_STUPM | OTG_DOEPMSK_XFRCM;
 
 	/* Explicitly enable DP pullup and connect */
 	OTG_FS_DCTL &= ~OTG_DCTL_SDIS;
