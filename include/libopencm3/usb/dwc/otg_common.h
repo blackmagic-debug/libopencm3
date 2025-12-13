@@ -340,7 +340,7 @@
 /* OTG Device OUT Endpoint X Control Register (OTG_DOEPCTLX) */
 #define OTG_DOEPCTLX_SD1PID			(1U << 29U)
 #define OTG_DOEPCTLX_SD0PID			(1U << 28U)
-#define OTG_DIEPCTLX_EPTYP_SHIFT	18U
+#define OTG_DOEPCTLX_EPTYP_SHIFT	18U
 #define OTG_DOEPCTLX_MPSIZ_MASK		(0x000007ffU)
 
 /* OTG Device IN Endpoint Interrupt Register (OTG_DIEPINTx) */

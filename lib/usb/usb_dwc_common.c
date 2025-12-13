@@ -149,7 +149,7 @@ void dwc_endpoints_reset(usbd_device *usbd_dev)
 		}
 	}
 
-	/* Flush all tx/rx fifos */
+	/* Flush all TX & RX FIFOs */
 	REBASE(OTG_GRSTCTL) = OTG_GRSTCTL_TXFFLSH | OTG_GRSTCTL_TXFNUM_ALL | OTG_GRSTCTL_RXFFLSH;
 	/* And wait for the flush to complete before anything else happens */
 	while (REBASE(OTG_GRSTCTL) & (OTG_GRSTCTL_TXFFLSH | OTG_GRSTCTL_RXFFLSH)) {
@@ -160,7 +160,7 @@ void dwc_endpoints_reset(usbd_device *usbd_dev)
 void dwc_ep_stall_set(usbd_device *const usbd_dev, const uint8_t addr, const uint8_t stall)
 {
 	const uint8_t ep = addr & 0x7FU;
-	if (ep == 0) {
+	if (ep == 0U) {
 		if (stall) {
 			REBASE(OTG_DIEPCTL(ep)) |= OTG_DIEPCTL0_STALL;
 		} else {
@@ -217,23 +217,16 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 	const uint8_t ep = addr & 0x7FU;
 
 #if defined(STM32H7) || defined(STM32U5)
-#if defined(STM32U5)
-	/* Spin if endpoint is already enabled. */
-	while (REBASE(OTG_DIEPCTL(ep)) & OTG_DIEPCTL0_EPENA) {
-		continue;
-	}
-#else
 	/* Return if endpoint is already enabled. */
 	if (REBASE(OTG_DIEPCTL(ep)) & OTG_DIEPCTL0_EPENA) {
 		return 0U;
 	}
-#endif
 
 	/* Enable endpoint for transmission. */
 	if (ep == 0U) {
-		REBASE(OTG_DIEPTSIZ(0U)) = OTG_DIEPSIZ0_PKTCNT | (len & OTG_DIEPSIZ0_XFRSIZ_MASK);
+		REBASE(OTG_DIEPTSIZ0) = OTG_DIEPSIZ0_PKTCNT | (len & OTG_DIEPSIZ0_XFRSIZ_MASK);
 	} else {
-		REBASE(OTG_DIEPTSIZ(ep)) = OTG_DIEPSIZX_PKTCNT(1) | (len & OTG_DIEPSIZX_XFRSIZ_MASK);
+		REBASE(OTG_DIEPTSIZ(ep)) = OTG_DIEPSIZX_MCNT_1 | OTG_DIEPSIZX_PKTCNT(1) | (len & OTG_DIEPSIZX_XFRSIZ_MASK);
 	}
 	REBASE(OTG_DIEPCTL(ep)) |= OTG_DIEPCTL0_EPENA | OTG_DIEPCTL0_CNAK;
 
@@ -253,10 +246,9 @@ uint16_t dwc_ep_write_packet(usbd_device *const usbd_dev, const uint8_t addr, co
 	}
 	/* If there's some data left over at the end, do the final copy */
 	if (len - aligned_len) {
-		const uint8_t *const buf8 = buf;
 		uint32_t data = 0U;
 		const size_t amount = len - aligned_len;
-		memcpy(&data, buf8 + aligned_len, amount);
+		memcpy(&data, buf32 + (aligned_len >> 2U), amount);
 #if defined(STM32H7)
 		fifo[aligned_len >> 2U] = data;
 #else
@@ -305,21 +297,15 @@ uint16_t dwc_ep_read_packet(usbd_device *usbd_dev, uint8_t addr, void *buf, uint
 {
 	/* We do not need to know the endpoint address since there is only one receive FIFO for all endpoints. */
 	(void)addr;
-#if defined(STM32H7) || defined(STM32U5)
+#if defined(STM32H7)
 	const size_t count = MIN(len, usbd_dev->rxbcnt);
 
 	uint8_t *const buf8 = buf;
-#if defined(STM32H7)
 	/* Figure out where to copy the data from */
 	const volatile uint32_t *const fifo = (const volatile uint32_t *)(usbd_dev->driver->base_address + OTG_FIFO(0));
-#endif
 	/* Copy the data out of the FIFO for this endpoint */
 	for (size_t offset = 0U; offset < count; offset += 4U) {
-#if defined(STM32H7)
 		const uint32_t data = fifo[offset >> 2U];
-#else
-		const uint32_t data = REBASE(OTG_FIFO(0));
-#endif
 		const size_t amount = MIN(count - offset, 4U);
 		memcpy(buf8 + offset, &data, amount);
 	}
@@ -334,14 +320,7 @@ uint16_t dwc_ep_read_packet(usbd_device *usbd_dev, uint8_t addr, void *buf, uint
 	/* Adjust the end point to cover only whole u32s */
 	const size_t adjusted_count = count - remainder;
 	uint32_t *const buf32 = buf;
-	/* ARMv7M supports non-word-aligned accesses, ARMv6M does not. */
-#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_8M_MAIN__)
-	for (size_t offset = 0U; offset < adjusted_count; offset += 4U) {
-		buf32[offset >> 2U] = REBASE(OTG_FIFO(0U));
-		usbd_dev->rxbcnt -= 4U;
-	}
-#endif /* defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__) */
-
+	/* ARMv7-M and newer supports non-word-aligned accesses, ARMv6-M does not. */
 #if defined(__ARM_ARCH_6M__)
 	uint8_t *buf8 = buf;
 	/* Take care of word-aligned and non-word-aligned buffers */
@@ -356,6 +335,11 @@ uint16_t dwc_ep_read_packet(usbd_device *usbd_dev, uint8_t addr, void *buf, uint
 			memcpy(buf8 + offset, &word32, 4U);
 			usbd_dev->rxbcnt -= 4U;
 		}
+	}
+#else
+	for (size_t offset = 0U; offset < adjusted_count; offset += 4U) {
+		buf32[offset >> 2U] = REBASE(OTG_FIFO(0U));
+		usbd_dev->rxbcnt -= 4U;
 	}
 #endif /* defined(__ARM_ARCH_6M__) */
 
@@ -452,14 +436,12 @@ void dwc_poll(usbd_device *usbd_dev)
 
 		if (pktsts == OTG_GRXSTSP_PKTSTS_SETUP_COMP) {
 			usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_SETUP](usbd_dev, ep);
+#if defined(STM32H7) || defined(STM32U5)
+			REBASE(OTG_DOEPINT(ep)) = OTG_DOEPINTX_STUP;
+#endif
 		}
 
 		if (pktsts == OTG_GRXSTSP_PKTSTS_OUT_COMP || pktsts == OTG_GRXSTSP_PKTSTS_SETUP_COMP) {
-#if defined(STM32H7) || defined(STM32U5)
-			if (pktsts == OTG_GRXSTSP_PKTSTS_SETUP_COMP) {
-				REBASE(OTG_DOEPINT(ep)) = OTG_DOEPINTX_STUP;
-			}
-#endif
 			REBASE(OTG_DOEPTSIZ(ep)) = usbd_dev->doeptsiz[ep];
 			REBASE(OTG_DOEPCTL(ep)) |=
 				OTG_DOEPCTL0_EPENA | (usbd_dev->force_nak[ep] ? OTG_DOEPCTL0_SNAK : OTG_DOEPCTL0_CNAK);
@@ -501,10 +483,6 @@ void dwc_poll(usbd_device *usbd_dev)
 			/* There is only one receive FIFO, so use OTG_FIFO(0) */
 			(void)REBASE(OTG_FIFO(0));
 		}
-
-#if defined(STM32U5)
-		REBASE(OTG_DOEPINT(ep)) = OTG_DOEPINTX_XFRC;
-#endif
 #endif
 
 		usbd_dev->rxbcnt = 0;
@@ -531,7 +509,7 @@ void dwc_poll(usbd_device *usbd_dev)
 		REBASE(OTG_GINTSTS) = OTG_GINTSTS_SOF;
 	}
 
-#if !defined(STM32H7) || defined(STM32U5)
+#if !defined(STM32H7) && !defined(STM32U5)
 	if (usbd_dev->user_callback_sof) {
 		REBASE(OTG_GINTMSK) |= OTG_GINTMSK_SOFM;
 	} else {
