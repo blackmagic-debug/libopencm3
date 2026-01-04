@@ -131,19 +131,35 @@
 #define ADC_OR_CHN21SEL (1U << 0U)
 
 /****************************************************************************/
-/* ADC_SMPRx ADC Sample Time Selection for Channels */
-/** @defgroup adc_sample ADC Sample Time Selection values
+/* ADC12_SMPRx ADC Sample Time Selection for Channels */
+/** @defgroup adc12_sample ADC Sample Time Selection values
 @ingroup adc_defines
 
 @{*/
-#define ADC_SMPR_SMP_1DOT5CYC   0x0U
-#define ADC_SMPR_SMP_3DOT5CYC   0x1U
-#define ADC_SMPR_SMP_7DOT5CYC   0x2U
-#define ADC_SMPR_SMP_12DOT5CYC  0x3U
-#define ADC_SMPR_SMP_19DOT5CYC  0x4U
-#define ADC_SMPR_SMP_39DOT5CYC  0x5U
-#define ADC_SMPR_SMP_79DOT5CYC  0x6U
-#define ADC_SMPR_SMP_814DOT5CYC 0x7U
+#define ADC12_SMPR_SMP_5CYC   0x0U
+#define ADC12_SMPR_SMP_6CYC   0x1U
+#define ADC12_SMPR_SMP_12CYC  0x2U
+#define ADC12_SMPR_SMP_20CYC  0x3U
+#define ADC12_SMPR_SMP_36CYC  0x4U
+#define ADC12_SMPR_SMP_68CYC  0x5U
+#define ADC12_SMPR_SMP_391CYC 0x6U
+#define ADC12_SMPR_SMP_814CYC 0x7U
+/**@}*/
+
+/****************************************************************************/
+/* ADC4_SMPRx ADC Sample Time Selection for Channels */
+/** @defgroup adc4_sample ADC Sample Time Selection values
+@ingroup adc_defines
+
+@{*/
+#define ADC4_SMPR_SMP_1DOT5CYC   0x0U
+#define ADC4_SMPR_SMP_3DOT5CYC   0x1U
+#define ADC4_SMPR_SMP_7DOT5CYC   0x2U
+#define ADC4_SMPR_SMP_12DOT5CYC  0x3U
+#define ADC4_SMPR_SMP_19DOT5CYC  0x4U
+#define ADC4_SMPR_SMP_39DOT5CYC  0x5U
+#define ADC4_SMPR_SMP_79DOT5CYC  0x6U
+#define ADC4_SMPR_SMP_814DOT5CYC 0x7U
 /**@}*/
 
 /* ADC12_CCR Values ---------------------------------------------------------*/
