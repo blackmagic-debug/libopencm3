@@ -371,9 +371,7 @@ void dwc_poll(usbd_device *const usbd_dev)
 	 *
 	 * Iterate over the IN endpoints, triggering any post-transmit actions.
 	 */
-#if defined(STM32H7) || defined(STM32U5)
 	if (status & OTG_GINTSTS_IEPINT) {
-#endif
 		for (size_t ep = 0U; ep < ENDPOINT_COUNT; ++ep) {
 			/* If this endpoint has a completion, process it */
 			if (REBASE(OTG_DIEPINT(ep)) & OTG_DIEPINTX_XFRC) {
@@ -387,9 +385,7 @@ void dwc_poll(usbd_device *const usbd_dev)
 			/* Clear any and all interrupt notifications on this endpoint */
 			REBASE(OTG_DIEPINT(ep)) = REBASE(OTG_DIEPINT(ep));
 		}
-#if defined(STM32H7) || defined(STM32U5)
 	}
-#endif
 
 	/* Handle OUT packet reception */
 	while (REBASE(OTG_GINTSTS) & OTG_GINTSTS_RXFLVL) {
