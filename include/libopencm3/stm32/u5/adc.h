@@ -49,6 +49,8 @@
 #define ADC4 ADC4_BASE
 /**@}*/
 
+/** ADC Channel Preselection Register */
+#define ADC_PCSEL(adc) MMIO32((adc) + 0x1cU)
 /** ADC Channel Selection Register */
 #define ADC_CHSELR(adc) MMIO32((adc) + 0x28U)
 /** ADC Power Register */
@@ -187,6 +189,7 @@ void adc_clear_eos(uintptr_t adc);
 void adc_set_common_prescaler(uint8_t prescaling);
 void adc_ungate_power(uintptr_t adc);
 void adc_calibrate_linearity(uintptr_t adc);
+void adc_channel_preselect(uintptr_t adc, uint8_t channel);
 
 END_DECLS
 

@@ -90,3 +90,14 @@ void adc_calibrate_linearity(const uintptr_t adc)
 {
 	ADC_CR(adc) |= ADC_CR_ADCALLIN;
 }
+
+/** @brief Preselect ADC channel for conversion
+ *
+ * @param[in] adc Unsigned intptr. ADC block register address base @ref
+ * @param[in] channel Unsigned int8. ADC channel to preselect for conversion
+ * adc_reg_base.
+ */
+void adc_channel_preselect(const uintptr_t adc, const uint8_t channel)
+{
+	ADC_PCSEL(adc) |= 1U << channel;
+}
