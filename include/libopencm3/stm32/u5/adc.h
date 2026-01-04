@@ -166,6 +166,7 @@
 BEGIN_DECLS
 
 void adc_disable_external_trigger_regular(uintptr_t adc);
+void adc_clear_eoc(uintptr_t adc);
 void adc_clear_eos(uintptr_t adc);
 void adc_set_common_prescaler(uint8_t prescaling);
 void adc_ungate_power(uintptr_t adc);

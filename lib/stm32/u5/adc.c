@@ -38,6 +38,16 @@ void adc_disable_external_trigger_regular(const uintptr_t adc)
 	ADC_CFGR1(adc) &= ~ADC_CFGR1_EXTEN_MASK;
 }
 
+/** @brief ADC Clear the End-of-Conversion Flag for Regular Conversions
+ *
+ * @param[in] adc Unsigned intptr. ADC block register address base
+ * @ref adc_reg_base
+ */
+void adc_clear_eoc(const uintptr_t adc)
+{
+	ADC_ISR(adc) = ADC_ISR_EOC;
+}
+
 /** @brief ADC Clear the End-of-Sequence Flag for Regular Conversions
  *
  * @param[in] adc Unsigned intptr. ADC block register address base
