@@ -86,12 +86,11 @@
 #define OTG_PCGCCTL			0xE00U
 
 /* Data FIFO */
-#if defined(STM32H7)
-#define OTG_FIFO(x)			(0x1000U * (x + 1U))
+#if defined(STM32H7) || defined(STM32U5)
+#define OTG_FIFO(x)			(uintptr_t)(0x1000U * (x + 1U))
 #else
-#define OTG_FIFO(x)			(((x) + 1U) << 12U)
+#define OTG_FIFO(x)			(((uintptr_t)(x) + 1U) << 12U)
 #endif
-
 
 /* Global CSRs */
 /* OTG USB control registers (OTG_GOTGCTL) */
@@ -262,6 +261,7 @@
 #define OTG_DCFG_NZLSOHSK	0x00000004U
 #define OTG_DCFG_DAD		0x000007F0U
 #define OTG_DCFG_PFIVL		0x00001800U
+#define OTG_DCFG_ERRATIM	(1U << 15U)
 
 /* OTG device status register (OTG_DSTS) */
 #define OTG_DSTS_SUSPSTS	(1U << 0U)
@@ -341,7 +341,7 @@
 /* OTG Device OUT Endpoint X Control Register (OTG_DOEPCTLX) */
 #define OTG_DOEPCTLX_SD1PID			(1U << 29U)
 #define OTG_DOEPCTLX_SD0PID			(1U << 28U)
-#define OTG_DIEPCTLX_EPTYP_SHIFT	18U
+#define OTG_DOEPCTLX_EPTYP_SHIFT	18U
 #define OTG_DOEPCTLX_MPSIZ_MASK		(0x000007ffU)
 
 /* OTG Device IN Endpoint Interrupt Register (OTG_DIEPINTx) */

@@ -35,21 +35,25 @@ TGT_CFLAGS	+= $(STANDARD_FLAGS)
 
 ARFLAGS		= rcs
 
-OBJS += timer_common_all.o
+OBJS += adc_common_v2.o adc_common_v2_multi.o adc.o
+OBJS += dma.o
+OBJS += desig_common_v1.o
 OBJS += exti_common_all.o
+OBJS += flash_common_all.o flash.o
+OBJS += gpio_common_all.o gpio_common_f0234.o
 OBJS += iwdg_common_all.o
 OBJS += i2c_common_v2.o
-OBJS += usart_common_all.o usart_common_v2.o
-OBJS += gpio_common_all.o gpio_common_f0234.o
-OBJS += rcc.o rcc_common_all.o crs_common_all.o
 OBJS += pwr.o
+OBJS += rcc.o rcc_common_all.o crs_common_all.o
+OBJS += spi.o
+OBJS += timer_common_all.o timer.o
+OBJS += usart_common_all.o usart_common_v2.o
 
 OBJS += usb.o usb_standard.o usb_control.o usb_msc.o
 OBJS += usb_hid.o usb_bos.o usb_microsoft.o
 OBJS += usb_audio.o usb_cdc.o usb_midi.o
-OBJS += usb_dwc_common.o usb_f107.o usb_f207.o
+OBJS += usb_dwc_common.o usb_stm32u5.o usb_stm32h7.o
 
 VPATH += ../../usb:../:../../cm3:../common
 
 include ../../Makefile.include
-
